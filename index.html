@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; }
+      #gameLobby { display: none }
+    </style>
+  </head>
+  <body>
+    <div id="joinOrCreate">
+      <button id="create lobby">Create Game</button>
+      <input type="text" id="join-game-input" />
+      <button id="join-game-button">Join Game (Enter 4 digit code)</button>
+    </div>
+    <div id="gameLobby">
+      <button id="leaveGame">Leave Game</button>
+      <canvas id="sheet" width="300" height="300"></canvas>
+      <img src="" id="otherPlayerImage" width="100" height="100" />
+      <div id="game-code"></div>
+      <ul id="messages"></ul>
+      <form id="form" action="">
+        <input id="input" autocomplete="off" /><button>Send</button>
+      </form>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type='text/javascript' src='http://cdnjs.cloudflare.com/ajax/libs/fabric.js/1.4.0/fabric.min.js'></script>
+    <script>
+      var socket = io();
+
+      var messages = document.getElementById('messages');
+      var form = document.getElementById('form');
+      var input = document.getElementById('input');
+      var createGame = document.getElementById('create lobby');
+      var gameCode = document.getElementById('game-code');
+
+      var joinGameButton = document.getElementById('join-game-button');
+      var joinGameInput = document.getElementById('join-game-input');
+
+      var joinOrCreateSection = document.getElementById('joinOrCreate');
+      var gameLobby = document.getElementById('gameLobby');
+      var leaveGame = document.getElementById('leaveGame');
+      var sheet = document.getElementById('sheet');
+      var otherPlayerImage = document.getElementById('otherPlayerImage');
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (input.value) {
+          socket.emit('chat message', input.value);
+          input.value = '';
+        }
+      });
+
+      // image handling / updating
+      window.onload=function(){
+          var canvas = new fabric.Canvas('sheet');
+          canvas.isDrawingMode = true;
+          canvas.freeDrawingBrush.width = 5;
+          canvas.freeDrawingBrush.color = "#ff0000";
+          canvas.on('path:created', function(event) {
+              //log the svg path  info
+              socket.emit('new image', sheet.toDataURL());
+          })
+      }
+
+      socket.on('image update', function(msg) {
+        otherPlayerImage.src = msg
+      });
+
+      // joining a game
+
+      joinGameButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (joinGameInput.value) {
+          socket.emit('join game', joinGameInput.value);
+          joinGameInput.value = '';
+          joinOrCreateSection.style.display = 'none'
+          gameLobby.style.display = 'inline'
+        }
+      });
+
+      leaveGame.addEventListener('click', function(e) {
+        e.preventDefault();
+        socket.emit('leave room', joinGameInput.value);
+        message.innerHTML = "";
+        joinOrCreateSection.style.display = 'inline'
+        gameLobby.style.display = 'none'
+      });
+
+      createGame.addEventListener('click', function(e) {
+        e.preventDefault();
+        socket.emit('create game')
+      })
+
+      socket.on('chat message', function(msg) {
+        var item = document.createElement('li');
+        item.textContent = msg;
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      socket.on('new game', function(msg) {
+        var item = document.createElement('h2');
+        item.textContent = msg;
+        gameCode.replaceChildren(item);
+        socket.emit('join game', msg);
+        joinOrCreateSection.style.display = 'none'
+        gameLobby.style.display = 'inline'
+      })
+    </script>
+  </body>
+</html>
