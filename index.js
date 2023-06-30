@@ -1,4 +1,5 @@
 const cors = require('cors');
+const { randomUUID } = require('crypto');
 const app = require('express')();
 
 
@@ -33,30 +34,99 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
 
-  socket.on('create game', () => {
+  socket.on('create game', (msg) => {
+
     const gameCode = makeid(4);
 
-    gameCodes.push(gameCode);
-    socket.join(gameCode);
-    io.to(gameCode).emit('new game', gameCode);
+    const gameData = {
+      users: [
+        {
+          name: msg,
+          id: randomUUID(),
+        }
+      ],
+      gameCode,
+    };
+
+    gameCodes.push(gameData);
+    socket.join(gameData.gameCode);
+    io.to(gameData.gameCode).emit('new game state', gameData);
+
+    socket.on('chat message', (msg) => {
+      io.to(gameCode).emit('chat message', msg);
+    });
+
+    socket.on('new image', (msg) => {
+      // update game state with canvas
+      gameCodes = gameCodes.map((data) => {
+        if (data.gameCode === gameCode) {
+          data.users = data.users.map((user) => {
+            if (user.id === msg.id) {
+              user.canvas = msg.canvas;
+            }
+            return user;
+          }
+          );
+        }
+        return data;
+      });
+
+      io.to(gameCode).emit('image update', msg);
+    });
   });
 
   // join game
   socket.on('join game', function (msg) {
-    const gameCode = msg.toString().toUpperCase();
-    if (gameCodes.includes(gameCode)) {
+    const gameCode = msg.gameCode.toString().toUpperCase();
+    if (gameCodes.map(data => data.gameCode).includes(gameCode)) {
+      console.log(gameCode);
       socket.join(gameCode);
-      io.to(gameCode).emit('chat message', 'A new player has joined');
+
+      gameCodes = gameCodes.map((data) => {
+        if (data.gameCode === gameCode) {
+          data.users.push({
+            name: msg.name,
+            id: randomUUID(),
+          });
+        }
+        return data;
+      });
+
+      io.to(gameCode).emit('new game state', gameCodes.find(data => data.gameCode === gameCode));
 
       socket.on('chat message', (msg) => {
         io.to(gameCode).emit('chat message', msg);
       });
 
-      socket.on('leave room', function () {
+      socket.on('leave room', (msg) => {
         socket.leave(gameCode);
-      })
 
-      socket.on('new image', function (msg) {
+        gameCodes = gameCodes.map((data) => {
+          if (data.gameCode === gameCode) {
+            data.users = data.users.filter(user => user.id !== msg.id);
+          }
+          return data;
+        });
+  
+        io.to(gameCode).emit('new game state', gameCodes.find(data => data.gameCode === gameCode));
+      });
+
+      socket.on('new image', (msg) => {
+
+        // update game state with canvas
+        gameCodes = gameCodes.map((data) => {
+          if (data.gameCode === gameCode) {
+            data.users.map((user) => {
+              if (user.id === msg.id) {
+                user.canvas = msg.canvas;
+              }
+              return user;
+            }
+            );
+          }
+          return data;
+        });
+
         io.to(gameCode).emit('image update', msg);
       });
     }
