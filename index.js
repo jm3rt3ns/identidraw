@@ -1,7 +1,17 @@
+const cors = require('cors');
 const app = require('express')();
+
+
 const http = require('http').Server(app);
-const io = require('socket.io')(http);
+const io = require("socket.io")(http, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
 const port = process.env.PORT || 3000;
+app.use(cors());
+app.options('*', cors());
 
 function makeid(length) {
   let result = '';
@@ -32,21 +42,21 @@ io.on('connection', (socket) => {
   });
 
   // join game
-  socket.on('join game', function(msg) {
+  socket.on('join game', function (msg) {
     const gameCode = msg.toString().toUpperCase();
-    if(gameCodes.includes(gameCode)) {
+    if (gameCodes.includes(gameCode)) {
       socket.join(gameCode);
       io.to(gameCode).emit('chat message', 'A new player has joined');
 
       socket.on('chat message', (msg) => {
-          io.to(gameCode).emit('chat message', msg);
-        });
+        io.to(gameCode).emit('chat message', msg);
+      });
 
-      socket.on('leave room', function() {
-          socket.leave(gameCode);
+      socket.on('leave room', function () {
+        socket.leave(gameCode);
       })
 
-      socket.on('new image', function(msg) {
+      socket.on('new image', function (msg) {
         io.to(gameCode).emit('image update', msg);
       });
     }
