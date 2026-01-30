@@ -11,12 +11,12 @@ const app = express();
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json());
 
-// --- REST endpoint for user registration ---
+// --- REST endpoint for user registration / lookup ---
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { token, username } = req.body;
-    if (!token || !username) {
-      return res.status(400).json({ error: 'Token and username are required' });
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
     }
 
     const decoded = await firebaseAuth.verifyIdToken(token);
@@ -27,6 +27,11 @@ app.post('/api/auth/register', async (req, res) => {
     });
     if (existing) {
       return res.json({ user: existing });
+    }
+
+    // New user registration — username is required
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required for new users' });
     }
 
     const user = await prisma.user.create({
@@ -40,7 +45,11 @@ app.post('/api/auth/register', async (req, res) => {
     res.json({ user });
   } catch (err: any) {
     if (err?.code === 'P2002') {
-      return res.status(409).json({ error: 'Username or email already taken' });
+      const target = err?.meta?.target;
+      if (Array.isArray(target) && target.includes('username')) {
+        return res.status(409).json({ error: 'Username already taken' });
+      }
+      return res.status(409).json({ error: 'An account with this email already exists' });
     }
     console.error('Registration error:', err);
     res.status(400).json({ error: 'Registration failed' });

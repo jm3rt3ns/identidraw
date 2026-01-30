@@ -7,6 +7,8 @@ import LobbyChat from '../components/LobbyChat';
 import PlayerList from '../components/PlayerList';
 import type { Lobby as LobbyType } from '../types';
 
+const MIN_REQUIRED_PLAYERS = 2;
+
 export default function Lobby() {
   const { code } = useParams<{ code: string }>();
   const { user } = useAuth();
@@ -85,7 +87,7 @@ export default function Lobby() {
   }
 
   const isHost = user?.dbId === lobby.hostId;
-  const canStart = isHost && lobby.players.length >= 3;
+  const canStart = isHost && lobby.players.length >= MIN_REQUIRED_PLAYERS;
 
   return (
     <div className="max-w-4xl mx-auto p-4 min-h-screen flex flex-col">
@@ -118,8 +120,8 @@ export default function Lobby() {
               disabled={!canStart}
               className="btn-primary w-full mt-4"
             >
-              {lobby.players.length < 3
-                ? `Need ${3 - lobby.players.length} more player(s)`
+              {lobby.players.length < MIN_REQUIRED_PLAYERS
+                ? `Need ${MIN_REQUIRED_PLAYERS - lobby.players.length} more player(s)`
                 : 'Start Game'}
             </button>
           )}

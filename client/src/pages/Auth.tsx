@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { signUp, signIn, getIdToken } from '../services/firebase';
@@ -28,12 +28,29 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(searchParams.get('step') !== 'register');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { setUserProfile } = useAuth();
+  const { user, setUserProfile } = useAuth();
+
+  // Redirect fully authenticated users to home
+  if (user && user.username) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleLogin = async (values: { email: string; password: string }) => {
     setError('');
     try {
       await signIn(values.email, values.password);
+      const token = await getIdToken();
+      if (token) {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, username: '' }),
+        });
+        if (res.ok) {
+          const { user: dbUser } = await res.json();
+          setUserProfile({ username: dbUser.username, dbId: dbUser.id });
+        }
+      }
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -66,7 +83,12 @@ export default function Auth() {
       setUserProfile({ username: user.username, dbId: user.id });
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      const code = err?.code;
+      if (code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists. Try signing in instead.');
+      } else {
+        setError(err.message || 'Registration failed');
+      }
     }
   };
 

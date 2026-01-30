@@ -2,6 +2,8 @@ import { Server, Socket } from 'socket.io';
 import { lobbyManager } from '../lobby/manager';
 import { gameManager } from '../game/manager';
 
+
+const MIN_PLAYERS_REQUIRED = 2;
 export function registerLobbyHandlers(io: Server, socket: Socket) {
   const getPlayer = () => ({
     id: socket.data.userId as string,
@@ -68,8 +70,8 @@ export function registerLobbyHandlers(io: Server, socket: Socket) {
       if (lobby.hostId !== socket.data.userId) {
         return callback({ success: false, error: 'Only the host can start the game' });
       }
-      if (lobby.players.length < 3) {
-        return callback({ success: false, error: 'Need at least 3 players to start' });
+      if (lobby.players.length < MIN_PLAYERS_REQUIRED) {
+        return callback({ success: false, error: `Need at least ${MIN_PLAYERS_REQUIRED} players to start` });
       }
 
       await lobbyManager.setStatus(code, 'countdown');
