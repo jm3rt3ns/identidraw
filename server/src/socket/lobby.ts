@@ -85,6 +85,7 @@ export function registerLobbyHandlers(io: Server, socket: Socket) {
         const targetSocket = io.sockets.sockets.get(gp.socketId);
         if (targetSocket && knownPlayer) {
           targetSocket.emit('game:init', {
+            code,
             yourAnimal: gp.animal,
             knownPlayerAnimal: {
               playerId: knownPlayer.id,

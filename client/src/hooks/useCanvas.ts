@@ -78,7 +78,7 @@ export function useCanvas(
   const flushBatch = useCallback(() => {
     if (pointsBuffer.current.length > 0) {
       onStroke([...pointsBuffer.current], color, lineWidth);
-      pointsBuffer.current = [];
+      pointsBuffer.current = [pointsBuffer.current[pointsBuffer.current.length - 1]];
     }
   }, [onStroke, color, lineWidth]);
 

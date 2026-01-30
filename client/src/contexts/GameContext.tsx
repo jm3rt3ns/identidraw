@@ -129,9 +129,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!socket) return;
 
-    const onInit = (data: GameInitData) => {
-      const code = (socket as any).data?.lobbyCode || '';
-      dispatch({ type: 'INIT', payload: { ...data, lobbyCode: code } });
+    const onInit = (data: GameInitData & { code: string }) => {
+      dispatch({ type: 'INIT', payload: { ...data, lobbyCode: data.code } });
     };
 
     const onCountdown = ({ seconds }: { seconds: number }) => {
