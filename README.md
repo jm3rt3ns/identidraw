@@ -14,14 +14,14 @@ A real-time multiplayer drawing and guessing game. Players draw their assigned s
 ## Tech Stack
 
 - **Frontend:** React, TypeScript, Tailwind CSS, Socket.IO client, Firebase Auth, Formik + Yup
-- **Backend:** Node.js, Express, Socket.IO, Firebase Admin, Prisma + SQLite, Redis
+- **Backend:** Node.js, Express, Socket.IO, Firebase Admin, Prisma + SQLite (Redis optional)
 - **Testing:** Vitest, React Testing Library
 
 ## Prerequisites
 
 - Node.js 20+
-- Redis (local or managed)
 - A Firebase project with Email/Password authentication enabled
+- Redis (optional -- only needed when `STORE_TYPE=redis`)
 
 ## Local Development
 
@@ -44,7 +44,11 @@ cp client/.env.example client/.env
 # Fill in Firebase web app config values
 ```
 
-### 3. Start Redis
+### 3. (Optional) Start Redis
+
+By default the server uses an **in-memory store** that requires no external services.
+If you need Redis (e.g. for multi-instance deployments), set `STORE_TYPE=redis` in
+`server/.env` and start Redis:
 
 ```bash
 docker compose up -d
@@ -88,7 +92,7 @@ This is the simplest production deployment path. The app is packaged as a single
 - A [DigitalOcean](https://www.digitalocean.com/) account
 - [doctl](https://docs.digitalocean.com/reference/doctl/) CLI installed
 - A DigitalOcean Container Registry (DOCR) created
-- A managed Redis database on DigitalOcean
+- (Optional) A managed Redis database on DigitalOcean -- only if using `STORE_TYPE=redis`
 
 ### Step-by-step
 
@@ -98,7 +102,9 @@ This is the simplest production deployment path. The app is packaged as a single
 doctl registry create identidraw-registry
 ```
 
-#### 2. Create a Managed Redis Database
+#### 2. (Optional) Create a Managed Redis Database
+
+Skip this step if you are using the default in-memory store (`STORE_TYPE=memory`).
 
 ```bash
 doctl databases create identidraw-redis --engine redis --size db-s-1vcpu-1gb --region nyc1
@@ -127,9 +133,11 @@ services:
         value: production
       - key: PORT
         value: "3001"
-      - key: REDIS_URL
-        value: "${redis.CONNECTION_URL}"
-        type: SECRET
+      - key: STORE_TYPE
+        value: memory          # change to "redis" and set REDIS_URL to use Redis
+      # - key: REDIS_URL
+      #   value: "${redis.CONNECTION_URL}"
+      #   type: SECRET
       - key: DATABASE_URL
         value: "file:./prod.db"
       - key: FIREBASE_PROJECT_ID
@@ -143,10 +151,11 @@ services:
         type: SECRET
       - key: CORS_ORIGIN
         value: "https://identidraw-xxxxx.ondigitalocean.app"
-databases:
-  - name: redis
-    engine: REDIS
-    production: true
+      # Uncomment below if using STORE_TYPE=redis
+      # databases:
+      #   - name: redis
+      #     engine: REDIS
+      #     production: true
 ```
 
 Deploy:
@@ -182,6 +191,6 @@ doctl apps list
 ### Environment Notes
 
 - **SQLite** works for single-instance deployments. For multi-instance scaling, switch to PostgreSQL by changing the Prisma datasource provider and connection string.
-- **Redis** is required for lobby and game state management. Use a managed Redis instance in production.
+- **Storage** defaults to an in-memory store (`STORE_TYPE=memory`) which is suitable for single-instance / small-scale deployments. For multi-instance deployments, set `STORE_TYPE=redis` and provide a `REDIS_URL` (install `ioredis` with `npm install ioredis`).
 - **Firebase** credentials must be set as environment variables. Never commit them to the repository.
 - **CORS_ORIGIN** should match your production domain.

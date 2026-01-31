@@ -1,4 +1,4 @@
-import { redis } from '../redis';
+import { store } from '../store';
 import { Player } from '../lobby/types';
 import { lobbyManager } from '../lobby/manager';
 
@@ -13,20 +13,20 @@ interface QueueEntry {
 export class MatchmakingQueue {
   async add(player: Player): Promise<void> {
     const entry: QueueEntry = { player, joinedAt: Date.now() };
-    await redis.rpush(QUEUE_KEY, JSON.stringify(entry));
+    await store.rpush(QUEUE_KEY, JSON.stringify(entry));
   }
 
   async remove(playerId: string): Promise<void> {
     const entries = await this.getAll();
-    await redis.del(QUEUE_KEY);
+    await store.del(QUEUE_KEY);
     const remaining = entries.filter((e) => e.player.id !== playerId);
     if (remaining.length > 0) {
-      await redis.rpush(QUEUE_KEY, ...remaining.map((e) => JSON.stringify(e)));
+      await store.rpush(QUEUE_KEY, ...remaining.map((e) => JSON.stringify(e)));
     }
   }
 
   async getAll(): Promise<QueueEntry[]> {
-    const raw = await redis.lrange(QUEUE_KEY, 0, -1);
+    const raw = await store.lrange(QUEUE_KEY, 0, -1);
     return raw.map((r) => JSON.parse(r));
   }
 
@@ -39,10 +39,10 @@ export class MatchmakingQueue {
     const players = matched.map((e) => e.player);
 
     // Remove matched players from the queue
-    await redis.del(QUEUE_KEY);
+    await store.del(QUEUE_KEY);
     const remaining = entries.slice(MATCH_SIZE);
     if (remaining.length > 0) {
-      await redis.rpush(QUEUE_KEY, ...remaining.map((e) => JSON.stringify(e)));
+      await store.rpush(QUEUE_KEY, ...remaining.map((e) => JSON.stringify(e)));
     }
 
     // Create a matchmaking lobby with the first player as host
@@ -55,7 +55,7 @@ export class MatchmakingQueue {
   }
 
   async getQueueSize(): Promise<number> {
-    return redis.llen(QUEUE_KEY);
+    return store.llen(QUEUE_KEY);
   }
 }
 

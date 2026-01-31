@@ -1,4 +1,4 @@
-import { redis } from '../redis';
+import { store } from '../store';
 import { Lobby, Player } from './types';
 
 const LOBBY_TTL = 7200; // 2 hours
@@ -16,7 +16,7 @@ export class LobbyManager {
     let code: string;
     do {
       code = generateCode();
-    } while (await redis.exists(key(code)));
+    } while (await store.exists(key(code)));
 
     const lobby: Lobby = {
       code,
@@ -27,17 +27,17 @@ export class LobbyManager {
       createdAt: Date.now(),
     };
 
-    await redis.setex(key(code), LOBBY_TTL, JSON.stringify(lobby));
+    await store.setex(key(code), LOBBY_TTL, JSON.stringify(lobby));
     return lobby;
   }
 
   async get(code: string): Promise<Lobby | null> {
-    const data = await redis.get(key(code));
+    const data = await store.get(key(code));
     return data ? JSON.parse(data) : null;
   }
 
   async update(lobby: Lobby): Promise<void> {
-    await redis.setex(key(lobby.code), LOBBY_TTL, JSON.stringify(lobby));
+    await store.setex(key(lobby.code), LOBBY_TTL, JSON.stringify(lobby));
   }
 
   async addPlayer(code: string, player: Player): Promise<Lobby | null> {
@@ -57,7 +57,7 @@ export class LobbyManager {
     lobby.players = lobby.players.filter((p) => p.id !== playerId);
 
     if (lobby.players.length === 0) {
-      await redis.del(key(code));
+      await store.del(key(code));
       return null;
     }
 
@@ -93,7 +93,7 @@ export class LobbyManager {
   }
 
   async delete(code: string): Promise<void> {
-    await redis.del(key(code));
+    await store.del(key(code));
   }
 }
 

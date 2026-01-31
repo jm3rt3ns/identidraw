@@ -1,4 +1,7 @@
 version: "3.8"
+
+# Redis is only needed when STORE_TYPE=redis.
+# For the default in-memory store you can skip `docker compose up` entirely.
 services:
   redis:
     image: redis:7-alpine
