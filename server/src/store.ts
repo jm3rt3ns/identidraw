@@ -30,7 +30,7 @@ export interface Store {
 // In-memory implementation
 // ---------------------------------------------------------------------------
 
-class MemoryStore implements Store {
+export class MemoryStore implements Store {
   private data = new Map<string, string>();
   private lists = new Map<string, string[]>();
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
