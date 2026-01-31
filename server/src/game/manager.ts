@@ -1,4 +1,4 @@
-import { redis } from '../redis';
+import { store } from '../store';
 import { GamePlayer, GameState, GuessAttempt } from './types';
 import { getRandomAnimals } from './animals';
 import { Player } from '../lobby/types';
@@ -39,18 +39,18 @@ export class GameManager {
       startedAt: Date.now(),
     };
 
-    await redis.setex(key(lobbyCode), GAME_TTL, JSON.stringify(state));
+    await store.setex(key(lobbyCode), GAME_TTL, JSON.stringify(state));
     this.strokes.set(lobbyCode, []);
     return state;
   }
 
   async get(code: string): Promise<GameState | null> {
-    const data = await redis.get(key(code));
+    const data = await store.get(key(code));
     return data ? JSON.parse(data) : null;
   }
 
   async update(state: GameState): Promise<void> {
-    await redis.setex(key(state.lobbyCode), GAME_TTL, JSON.stringify(state));
+    await store.setex(key(state.lobbyCode), GAME_TTL, JSON.stringify(state));
   }
 
   async setPlaying(code: string): Promise<GameState | null> {
@@ -145,7 +145,7 @@ export class GameManager {
   }
 
   async cleanup(code: string): Promise<void> {
-    await redis.del(key(code));
+    await store.del(key(code));
     this.strokes.delete(code);
   }
 }

@@ -3,9 +3,8 @@ dotenv.config();
 
 export const config = {
   port: parseInt(process.env.PORT || '3001', 10),
-  redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
-  },
+  storeType: (process.env.STORE_TYPE || 'memory') as 'memory' | 'redis',
+  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   firebase: {
     projectId: process.env.FIREBASE_PROJECT_ID || '',
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL || '',

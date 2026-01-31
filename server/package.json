@@ -7,7 +7,9 @@
     "build": "prisma generate && tsc",
     "start": "node dist/index.js",
     "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
@@ -15,9 +17,11 @@
     "dotenv": "^16.4.5",
     "express": "^4.18.3",
     "firebase-admin": "^12.0.0",
-    "ioredis": "^5.3.2",
     "socket.io": "^4.7.4",
     "uuid": "^9.0.1"
+  },
+  "optionalDependencies": {
+    "ioredis": "^5.3.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -27,6 +31,7 @@
     "nodemon": "^3.1.0",
     "prisma": "^5.10.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
   }
 }
