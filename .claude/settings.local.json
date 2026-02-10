@@ -6,7 +6,13 @@
       "Bash(npx tsc:*)",
       "Bash(npx vitest run)",
       "Bash(npx vite build:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(doctl auth status:*)",
+      "Bash(sudo pacman:*)",
+      "Bash(doctl version:*)",
+      "Bash(doctl auth init:*)",
+      "Bash(doctl registry get:*)",
+      "Bash(doctl databases list:*)"
     ]
   }
 }
