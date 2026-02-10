@@ -26,4 +26,4 @@ COPY --from=server-build /app/server/prisma ./prisma
 COPY --from=server-build /app/server/package.json ./
 COPY --from=client-build /app/client/dist ./public
 EXPOSE 3001
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]
