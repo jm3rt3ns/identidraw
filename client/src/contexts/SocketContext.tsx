@@ -25,7 +25,6 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // Only connect when the user is fully registered (has a username)
     if (!user?.username) {
       if (socket) {
         socket.disconnect();
@@ -35,25 +34,21 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    let s: Socket;
+    const token = getToken();
+    if (!token) return;
 
-    (async () => {
-      const token = await getToken();
-      if (!token) return;
+    const s = io(config.apiUrl || undefined, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+    });
 
-      s = io(config.apiUrl || undefined, {
-        auth: { token },
-        transports: ['websocket', 'polling'],
-      });
+    s.on('connect', () => setConnected(true));
+    s.on('disconnect', () => setConnected(false));
 
-      s.on('connect', () => setConnected(true));
-      s.on('disconnect', () => setConnected(false));
-
-      setSocket(s);
-    })();
+    setSocket(s);
 
     return () => {
-      if (s) s.disconnect();
+      s.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.username]);

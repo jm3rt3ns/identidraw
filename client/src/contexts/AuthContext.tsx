@@ -5,22 +5,19 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { type User } from 'firebase/auth';
-import { onAuthChange, signOut, getIdToken } from '../services/firebase';
+import { getStoredToken, getStoredUser, clearAuth } from '../services/auth';
 
 interface AuthUser {
   uid: string;
-  email: string | null;
-  username: string | null;
-  dbId: string | null;
+  username: string;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  logout: () => Promise<void>;
-  getToken: () => Promise<string | null>;
-  setUserProfile: (profile: { username: string; dbId: string }) => void;
+  logout: () => void;
+  getToken: () => string | null;
+  setUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -30,65 +27,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthChange(async (fbUser: User | null) => {
-      if (fbUser) {
-        // Try to fetch the profile from server
-        const token = await fbUser.getIdToken();
-        try {
-          const res = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, username: '' }),
-          });
-          if (res.ok) {
-            const { user: dbUser } = await res.json();
-            setUser({
-              uid: fbUser.uid,
-              email: fbUser.email,
-              username: dbUser.username,
-              dbId: dbUser.id,
-            });
-          } else {
-            // User authenticated in Firebase but not registered in DB yet
-            setUser({
-              uid: fbUser.uid,
-              email: fbUser.email,
-              username: null,
-              dbId: null,
-            });
-          }
-        } catch {
-          setUser({
-            uid: fbUser.uid,
-            email: fbUser.email,
-            username: null,
-            dbId: null,
-          });
-        }
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-    return unsub;
+    const storedUser = getStoredUser();
+    const token = getStoredToken();
+    if (storedUser && token) {
+      setUser({ uid: storedUser.id, username: storedUser.username });
+    }
+    setLoading(false);
   }, []);
 
-  const setUserProfile = (profile: { username: string; dbId: string }) => {
-    setUser((prev) =>
-      prev ? { ...prev, username: profile.username, dbId: profile.dbId } : null
-    );
+  const logout = () => {
+    clearAuth();
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        logout: signOut,
-        getToken: getIdToken,
-        setUserProfile,
-      }}
-    >
+    <AuthContext.Provider value={{ user, loading, logout, getToken: getStoredToken, setUser }}>
       {children}
     </AuthContext.Provider>
   );
